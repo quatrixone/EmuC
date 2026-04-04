@@ -1,154 +1,164 @@
-# EmuC0re
+# EmuC – EmulationStation PS5
 
-Emulators running as native x86_64 shellcode on PS5 through the [LuaC0re](https://github.com/Gezine/Luac0re) JIT exploit.
+**Multi-system libretro frontend for PS5 via the LuaC0re exploit.**
 
-PoC that full homebrew apps can be built and run from PS5 userland — no kernel exploit needed.  
-Works on all PS5 firmwares up to **13.00** (latest).
+> No kernel exploit required. Runs entirely in PS5 userland using the
+> Star Wars Racer Revenge (CUSA03474 / CUSA03492) JIT exploit, all firmwares up to 13.00.
 
-## NES Emulator
+---
 
-First emulator in the project
+## What's included
 
-- Full 6502 CPU (all 256 opcodes including illegals)
-- PPU with scrolling, sprites, sprite 0 hit
-- APU with 48kHz output
-- DualSense native pad support
-- Web-based touch/WebHID controller
-- Built-in FTP server for ROM upload
-- ROM picker menu
-- NTSC/PAL
+| File | Description |
+|------|-------------|
+| `es.lua` | **Main payload** – send this to PS5 port 9026 |
+| `es_launcher.py` | PC-side launcher: sends payload + uploads ROMs/cores via FTP |
+| `es_frontend.bin` | Compiled EmulationStation frontend shellcode |
+| `cores/nes_core.bin` | NES libretro core (built-in emulator exposed as libretro API) |
+| `nes.lua` / `nes_launcher.py` | Original standalone NES emulator (still works) |
+| `build_retroarch.sh` | Phase 2: clone + patch RetroArch orbis→PS5 |
+| `cores/build_cores.sh` | Phase 3: download + build real libretro cores |
+| `gen_lua.py` | Regenerate `es.lua` after recompiling C code |
 
-### Supported Mappers
+---
 
-| #   | Name      |
-| --- | --------- |
-| 0   | NROM      |
-| 1   | MMC1      |
-| 2   | UxROM     |
-| 3   | CNROM     |
-| 4   | MMC3      |
-| 7   | AxROM     |
-| 9   | MMC2      |
-| 10  | MMC4      |
-| 34  | BNROM     |
-| 66  | GxROM     |
-| 69  | FME-7     |
-| 87  | J87       |
-| 94  | UxROM V   |
-| 180 | Inv UxROM |
-| 185 | CNROM CP  |
-| 206 | DxROM     |
+## Quick Start
 
-Games on unsupported mappers won't run.
-
-## Requirements
-
-- PS5 console (any firmware, tested up to 13.00)
-- [LuaC0re](https://github.com/Gezine/Luac0re) set up and working
-- _Star Wars Racer Revenge_ — US (CUSA03474) or EU (CUSA03492)  
-  If you're on latest FW you can grab the digital version from the PS Store
+### Requirements
+- PS5 with LuaC0re set up (Star Wars Racer Revenge)
 - Python 3 on your PC
-- PC and PS5 on the same network
-
-## Building
-
-```
-make clean && make
-```
-
-Produces `nes_emu.bin`. Convert to hex and paste into `nes.lua` as the `sc` variable:
-
-## Usage
-
-### Setup
-
-Optional — listen for debug log on your PC:
-
-Edit `nes.lua` and set your PC's IP for debug logs:
-
-```lua
-local PC_IP = "192.168.1.121"
-```
-
-```
-nc -u -l -p 9027
-```
+- ROMs in `roms/` subdirectories (see structure below)
 
 ### Launch
+```bash
+# Send ES payload + upload ROMs + cores
+python3 es_launcher.py <PS5_IP>
 
-```
-python nes_launcher.py <PS5_IP>
-```
+# Upload only NES ROMs
+python3 es_launcher.py <PS5_IP> --system nes
 
-This sends the payload to the LuaC0re loader (port 9026), waits for the FTP server, uploads ROMs from the `roms/` folder, then starts the emulator.
-
-Options:
-
-```
---roms-dir PATH    ROM folder (default: ./roms)
---skip-upload      Launch without uploading ROMs
---launcher PATH    Custom lua file (default: ./nes.lua)
---ext .nes .rom    File extensions to scan
---ftp-wait SEC     FTP timeout (default: 10)
+# Skip ROM upload (just launch)
+python3 es_launcher.py <PS5_IP> --skip-upload
 ```
 
-### ROMs
+### ROM directory structure
+```
+roms/
+├── nes/    ← .nes .rom files
+├── snes/   ← .sfc .smc files
+├── md/     ← .md .bin .gen files
+├── gb/     ← .gb .gbc files
+└── gba/    ← .gba files
 
-**FTP upload :** put `.nes` files in a `roms/` folder next to the script, the launcher handles the rest.
+cores/
+├── nes_core.bin     ← built-in (NES emulator)
+├── snes_core.bin    ← see cores/build_cores.sh
+├── md_core.bin
+├── gb_core.bin
+└── gba_core.bin
+```
 
-or
+---
 
-**Manual:** place files directly in the savedata directory, they'll show up in the nes emu picker.
+## Systems & Cores
 
-### Controls
+| System | Extension | Core file | Status |
+|--------|-----------|-----------|--------|
+| Nintendo Entertainment System | `.nes` `.rom` | `nes_core.bin` | ✅ Built-in |
+| Super Nintendo | `.sfc` `.smc` | `snes_core.bin` | ⏳ snes9x port needed |
+| Sega Mega Drive | `.md` `.bin` | `md_core.bin` | ⏳ GenesisPlusGX port needed |
+| Game Boy / Color | `.gb` `.gbc` | `gb_core.bin` | ⏳ gambatte port needed |
+| Game Boy Advance | `.gba` | `gba_core.bin` | ⏳ mGBA port needed |
 
-ROM picker:
+**NES** works out of the box with the built-in emulator (no core .bin needed).  
+Other systems show "CORE NOT LOADED" until you upload their core binary via FTP.
 
-- **D-Pad** — navigate
-- **Cross / Start** — launch
-- **L1** — back to menu
-- **R1** — exit
+---
 
-In-game:
+## Controller
 
-| DualSense        | NES    |
-| ---------------- | ------ |
-| Cross            | A      |
-| Square           | B      |
-| Triangle         | Select |
-| Circle / Options | Start  |
-| D-Pad            | D-Pad  |
+| DualSense | Action |
+|-----------|--------|
+| D-Pad | Navigate menus / game d-pad |
+| Cross | Confirm / A button |
+| Circle | B button |
+| Square | X button |
+| Triangle | Y button |
+| L1 | Back to previous menu |
+| R1 | Exit |
+| Options | Start |
+| Share | Select |
 
-### Input Sources
+Web controller also available at `http://<PS5_IP>:9030`
 
-Two options: **native DualSense** or **web controller** (open `http://<PS5_IP>:9030` on your phone/PC)
+---
 
-The input source locks on the first button press and stays for the entire emulator session. You can't switch mid-session — you need to relaunch the emulator to change input method.
+## Building from source
 
-The web controller supports touch buttons, Gamepad API, and DualSense WebHID (Chrome/Edge, USB or BT).
+```bash
+# Build both NES emulator and ES frontend
+make all
 
-## TODO
+# Build only ES frontend
+make es
 
-- [ ] More mappers
-- [ ] Save states
-- [ ] SNES emulator
-- [ ] Game Boy / GBC emulator
-- [ ] maybe more emulators lets see...
+# Build NES libretro core
+make cores
+
+# Regenerate es.lua after code changes
+python3 gen_lua.py es_frontend.bin es.lua
+
+# Or use nes.lua (original NES emulator)
+python3 gen_lua.py nes_emu.bin nes.lua --nes
+```
+
+---
+
+## Phase 2: Full RetroArch port
+
+```bash
+./build_retroarch.sh
+```
+
+Clones RetroArch, applies PS5 patches on the orbis (PS4) backend, and attempts
+to compile. See `src/ps5_platform.c` for full API documentation.
+
+## Phase 3: Real libretro cores
+
+```bash
+./cores/build_cores.sh [nes|snes|md|gb|gba|all]
+```
+
+Downloads and compiles: nestopia-ue, snes9x, Genesis Plus GX, gambatte, mGBA.
+See script for current porting status.
+
+---
+
+## Architecture
+
+```
+PS5 (userland exploit)
+└── LuaC0re JIT → es.lua
+    ├── Embeds compiled x86-64 shellcode (es_frontend.bin)
+    ├── Allocates video framebuffers (1920×1080 BGRA8888)
+    ├── Opens audio (48kHz stereo s16)
+    ├── Opens FTP server (port 1337) for ROM/core upload
+    └── Calls _start(eboot_base, dlsym, ext_args)
+        ├── EmulationStation UI (system picker + ROM picker)
+        ├── Core loader: reads *.bin, maps RWX, calls _core_start()
+        └── libretro run loop (video/audio/input callbacks)
+```
+
+**Core binary format:**  
+Each `*_core.bin` starts with `_core_start(u64 base, struct core_header *out)`.  
+The frontend maps it, calls this function to get function offsets, then invokes  
+`retro_init → retro_load_game → retro_run` each frame.
+
+---
 
 ## Credits
 
-**EgyDevTeam**
-
-Special thanks to [Abkarino](https://github.com/AbkarinoMHM) — co-founder of EgyDevTeam.
-
-- [Gezine](https://github.com/Gezine/Luac0re) — LuaC0re framework and JIT exploit
-- [CTurt](https://github.com/CTurt) — [mast1c0re](https://cturt.github.io/mast1c0re.html) writeup
-- [McCaulay](https://github.com/McCaulay) — [mast1c0re](https://mccaulay.co.uk/mast1c0re-part-2-arbitrary-ps2-code-execution/) writeup and [Okage](https://github.com/McCaulay/mast1c0re) reference implementation
-- [ChampionLeake](https://github.com/ChampionLeake) — PS2 _Star Wars Racer Revenge_ exploit writeup on [psdevwiki](https://www.psdevwiki.com/ps2/Vulnerabilities)
-- [shahrilnet](https://github.com/shahrilnet/remote_lua_loader) & [null_ptr](https://github.com/n0llptr) — Code references from [remote_lua_loader](https://github.com/shahrilnet/remote_lua_loader)
-- [NESDev Wiki](https://www.nesdev.org/wiki/) & community — NES hardware documentation
-- [nondebug/dualsense](https://github.com/nondebug/dualsense) — DualSense HID docs
-
-## Disclaimer
-
-For research and educational purposes only. Use at your own risk.
+- EmuC NES emulator core by **egycnq / EgyDevTeam**
+- LuaC0re exploit framework
+- libretro API: libretro.org
+- EmulationStation: emulationstation.org (this project is a PS5 native re-implementation)

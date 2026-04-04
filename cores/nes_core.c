@@ -26,28 +26,34 @@ static void core_retro_unload_game(void);
 static void core_retro_run(void);
 static void core_retro_reset(void);
 
-/* ── Core header – MUST be first in .text._core_start ─────────────────── */
-/* All _off fields are absolute addresses in a binary linked at base 0,
- * which equals the byte offset of each function from binary start. */
+/* ── Core entry point – MUST be first bytes of binary ─────────────────── */
+/* The frontend maps this binary as executable, then calls byte 0 as:
+ *   void _core_start(u64 mapped_base, struct core_header *out)
+ * This fills *out with offsets relative to mapped_base.
+ * Using a runtime function avoids the "initializer not constant" error
+ * that occurs with static struct initializers containing function pointers.
+ */
 __attribute__((section(".text._core_start")))
-const struct core_header CORE_HDR = {
-    .magic                          = CORE_MAGIC,
-    .version                        = CORE_VERSION,
-    .retro_init_off                 = (u32)(u64)core_retro_init,
-    .retro_deinit_off               = (u32)(u64)core_retro_deinit,
-    .retro_set_environment_off      = (u32)(u64)core_retro_set_environment,
-    .retro_set_video_refresh_off    = (u32)(u64)core_retro_set_video_refresh,
-    .retro_set_audio_sample_off     = (u32)(u64)core_retro_set_audio_sample,
-    .retro_set_audio_sample_batch_off = (u32)(u64)core_retro_set_audio_sample_batch,
-    .retro_set_input_poll_off       = (u32)(u64)core_retro_set_input_poll,
-    .retro_set_input_state_off      = (u32)(u64)core_retro_set_input_state,
-    .retro_get_system_info_off      = (u32)(u64)core_retro_get_system_info,
-    .retro_get_system_av_info_off   = (u32)(u64)core_retro_get_system_av_info,
-    .retro_load_game_off            = (u32)(u64)core_retro_load_game,
-    .retro_unload_game_off          = (u32)(u64)core_retro_unload_game,
-    .retro_run_off                  = (u32)(u64)core_retro_run,
-    .retro_reset_off                = (u32)(u64)core_retro_reset,
-};
+void _core_start(u64 base, struct core_header *out) {
+    out->magic   = CORE_MAGIC;
+    out->version = CORE_VERSION;
+#define OFF(fn) (u32)((u64)(fn) - base)
+    out->retro_init_off                 = OFF(core_retro_init);
+    out->retro_deinit_off               = OFF(core_retro_deinit);
+    out->retro_set_environment_off      = OFF(core_retro_set_environment);
+    out->retro_set_video_refresh_off    = OFF(core_retro_set_video_refresh);
+    out->retro_set_audio_sample_off     = OFF(core_retro_set_audio_sample);
+    out->retro_set_audio_sample_batch_off = OFF(core_retro_set_audio_sample_batch);
+    out->retro_set_input_poll_off       = OFF(core_retro_set_input_poll);
+    out->retro_set_input_state_off      = OFF(core_retro_set_input_state);
+    out->retro_get_system_info_off      = OFF(core_retro_get_system_info);
+    out->retro_get_system_av_info_off   = OFF(core_retro_get_system_av_info);
+    out->retro_load_game_off            = OFF(core_retro_load_game);
+    out->retro_unload_game_off          = OFF(core_retro_unload_game);
+    out->retro_run_off                  = OFF(core_retro_run);
+    out->retro_reset_off                = OFF(core_retro_reset);
+#undef OFF
+}
 
 /* ── Static state ──────────────────────────────────────────────────────── */
 static struct NES g_nes;
