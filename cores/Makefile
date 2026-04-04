@@ -20,9 +20,9 @@ NES_OBJS = nes_core.o bus.o cpu.o ppu.o apu.o
 
 # ── Targets ────────────────────────────────────────────────────────────────
 
-.PHONY: all nes snes gb gba md clean
+.PHONY: all nes snes gb gba md ps1 ps2 clean
 
-all: nes_core.bin
+all: nes gb gba snes ps1 ps2
 
 # ── NES ────────────────────────────────────────────────────────────────────
 
@@ -53,19 +53,77 @@ ppu.o: ../src/ppu.c
 apu.o: ../src/apu.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# ── Stub targets (not yet ported) ──────────────────────────────────────────
+# ── GB (self-contained stub) ────────────────────────────────────────────────
 
-snes:
-	@echo "NOTE: snes9x not yet ported – stub target only."
-	@echo "      See cores/build_cores.sh to build the upstream libretro .so."
+gb: gb_core.bin
 
-gb:
-	@echo "NOTE: gambatte not yet ported – stub target only."
-	@echo "      See cores/build_cores.sh to build the upstream libretro .so."
+gb_core.bin: gb_core.elf
+	$(OBJCOPY) -O binary $< $@
+	@echo "Built: $@ ($$(wc -c < $@) bytes)"
 
-gba:
-	@echo "NOTE: mGBA not yet ported – stub target only."
-	@echo "      See cores/build_cores.sh to build the upstream libretro .so."
+gb_core.elf: gb_core.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ gb_core.o
+
+gb_core.o: gb_core.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# ── GBA (self-contained stub) ───────────────────────────────────────────────
+
+gba: gba_core.bin
+
+gba_core.bin: gba_core.elf
+	$(OBJCOPY) -O binary $< $@
+	@echo "Built: $@ ($$(wc -c < $@) bytes)"
+
+gba_core.elf: gba_core.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ gba_core.o
+
+gba_core.o: gba_core.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# ── SNES (self-contained stub) ──────────────────────────────────────────────
+
+snes: snes_core.bin
+
+snes_core.bin: snes_core.elf
+	$(OBJCOPY) -O binary $< $@
+	@echo "Built: $@ ($$(wc -c < $@) bytes)"
+
+snes_core.elf: snes_core.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ snes_core.o
+
+snes_core.o: snes_core.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# ── PS1 (self-contained stub) ───────────────────────────────────────────────
+
+ps1: ps1_core.bin
+
+ps1_core.bin: ps1_core.elf
+	$(OBJCOPY) -O binary $< $@
+	@echo "Built: $@ ($$(wc -c < $@) bytes)"
+
+ps1_core.elf: ps1_core.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ ps1_core.o
+
+ps1_core.o: ps1_core.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# ── PS2 (self-contained stub) ───────────────────────────────────────────────
+
+ps2: ps2_core.bin
+
+ps2_core.bin: ps2_core.elf
+	$(OBJCOPY) -O binary $< $@
+	@echo "Built: $@ ($$(wc -c < $@) bytes)"
+
+ps2_core.elf: ps2_core.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ ps2_core.o
+
+ps2_core.o: ps2_core.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# ── Stub target (not yet ported) ────────────────────────────────────────────
 
 md:
 	@echo "NOTE: Genesis Plus GX not yet ported – stub target only."

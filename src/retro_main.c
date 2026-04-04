@@ -24,7 +24,7 @@ static const char *RESP_204K = "HTTP/1.1 204\r\nConnection:keep-alive\r\nAccess-
 static const char *RESP_CORS = "HTTP/1.1 204\r\nAccess-Control-Allow-Origin:*\r\nAccess-Control-Allow-Methods:POST\r\nConnection:keep-alive\r\n\r\n";
 
 /* ── System table ───────────────────────────────────────────────────────── */
-#define NUM_SYSTEMS 5
+#define NUM_SYSTEMS 7
 
 static const char *SYS_NAME[NUM_SYSTEMS] = {
     "Nintendo Ent. System",
@@ -32,16 +32,19 @@ static const char *SYS_NAME[NUM_SYSTEMS] = {
     "Sega Mega Drive",
     "Game Boy / Color",
     "Game Boy Advance",
+    "PlayStation 1",
+    "PlayStation 2",
 };
 static const char *SYS_SHORT[NUM_SYSTEMS] = {
-    "NES", "SNES", "MEGA DRIVE", "GAME BOY", "GBA"
+    "NES", "SNES", "MEGA DRIVE", "GAME BOY", "GBA", "PS1", "PS2"
 };
-static const char *SYS_EXT1[NUM_SYSTEMS] = { ".nes", ".sfc", ".md",  ".gb",  ".gba" };
-static const char *SYS_EXT2[NUM_SYSTEMS] = { ".rom", ".smc", ".bin", ".gbc", ""     };
+static const char *SYS_EXT1[NUM_SYSTEMS] = { ".nes", ".sfc", ".md",  ".gb",  ".gba", ".bin", ".iso" };
+static const char *SYS_EXT2[NUM_SYSTEMS] = { ".rom", ".smc", ".bin", ".gbc", "",     ".iso", ".img" };
 static const char *SYS_CORE[NUM_SYSTEMS] = {
-    "nes_core.bin", "snes_core.bin", "md_core.bin", "gb_core.bin", "gba_core.bin"
+    "nes_core.bin", "snes_core.bin", "md_core.bin", "gb_core.bin", "gba_core.bin",
+    "ps1_core.bin", "ps2_core.bin"
 };
-static const u8 SYS_COL[NUM_SYSTEMS] = { 0x15, 0x23, 0x14, 0x2A, 0x27 };
+static const u8 SYS_COL[NUM_SYSTEMS] = { 0x15, 0x23, 0x14, 0x2A, 0x27, 0x22, 0x14 };
 
 /* ── Static globals for libretro callbacks ──────────────────────────────── */
 static void *g_gadget;
